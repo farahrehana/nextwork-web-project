@@ -1,0 +1,37 @@
+name: Deploy Java Web App to EC2
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build application
+        env:
+          JAVA_HOME: /usr/lib/jvm/java-1.8.0-amazon-corretto.x86_64
+        run: |
+          export PATH="$JAVA_HOME/bin:$PATH"
+          java -version
+          mvn clean package
+
+      - name: Deploy WAR to Tomcat
+        run: |
+          sudo systemctl stop tomcat9
+          sudo rm -rf /var/lib/tomcat9/webapps/nextwork-web-project
+          sudo rm -f /var/lib/tomcat9/webapps/nextwork-web-project.war
+          sudo cp target/nextwork-web-project.war /var/lib/tomcat9/webapps/nextwork-web-project.war
+          sudo systemctl start tomcat9
+
+      - name: Verify Tomcat
+        run: |
+          sleep 5
+          systemctl is-active --quiet tomcat9
+          echo "Deployment completed successfully."
